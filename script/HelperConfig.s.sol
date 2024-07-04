@@ -45,6 +45,7 @@ contract HelperConfig is Script {
         return
             NetworkConfig({
                 entryPoint: 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789,
+                // entryPoint: 0xA2753f42bf3A67e324dF2727480b5DcF54398C1a,
                 account: BURNER_WALLET
             });
     }
@@ -68,7 +69,5 @@ contract HelperConfig is Script {
                 entryPoint: address(0),
                 account: FOUNDRY_DEFAULT_WALLET
             });
-
-        
     }
 }

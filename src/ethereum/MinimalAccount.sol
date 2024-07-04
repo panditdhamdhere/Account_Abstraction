@@ -63,7 +63,7 @@ contract MinimalAccount is IAccount, Ownable {
         address dest,
         uint256 value,
         bytes calldata functionData
-    ) external requireFromEntryPointOrOwner{
+    ) external {
         (bool success, bytes memory result) = dest.call{value: value}(
             functionData
         );
