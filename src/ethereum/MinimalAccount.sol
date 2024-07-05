@@ -10,23 +10,21 @@ import {SIG_VALIDATION_FAILED, SIG_VALIDATION_SUCCESS} from "lib/account-abstrac
 import {IEntryPoint} from "lib/account-abstraction/contracts/interfaces/IEntryPoint.sol";
 
 contract MinimalAccount is IAccount, Ownable {
-    /////////////////////////////////////////////////////
-    /////////////////////Errors//////////////////////////
-    /////////////////////////////////////////////////////
+    /*//////////////////////////////////////////////////////////////
+                                 ERRORS
+    //////////////////////////////////////////////////////////////*/
     error MinimalAccount__NotFromEntryPoint();
-    error MinimalAccount_NotFromEntryPointOrOwner();
-    error MinimalAccount_CallFailed(bytes);
+    error MinimalAccount__NotFromEntryPointOrOwner();
+    error MiniamlAccount__CallFailed(bytes);
 
-    /////////////////////////////////////////////////////
-    /////////////////State Variables/////////////////////
-    /////////////////////////////////////////////////////
-
+    /*//////////////////////////////////////////////////////////////
+                            STATE VARIABLES
+    //////////////////////////////////////////////////////////////*/
     IEntryPoint private immutable i_entryPoint;
 
-    //////////////////////////////////////////////////
-    ////////////////Modifiers/////////////////////////
-    //////////////////////////////////////////////////
-
+    /*//////////////////////////////////////////////////////////////
+                               MODIFIERS
+    //////////////////////////////////////////////////////////////*/
     modifier requireFromEntryPoint() {
         if (msg.sender != address(i_entryPoint)) {
             revert MinimalAccount__NotFromEntryPoint();
@@ -35,53 +33,52 @@ contract MinimalAccount is IAccount, Ownable {
     }
 
     modifier requireFromEntryPointOrOwner() {
-        if (msg.sender != address(i_entryPoint) && msg.sender == owner()) {
-            revert MinimalAccount_NotFromEntryPointOrOwner();
+        if (msg.sender != address(i_entryPoint) && msg.sender != owner()) {
+            revert MinimalAccount__NotFromEntryPointOrOwner();
         }
         _;
     }
 
-    //////////////////////////////////////////////////
-    /////////////////Functions////////////////////////
-    //////////////////////////////////////////////////
-
+    /*//////////////////////////////////////////////////////////////
+                               FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
     constructor(address entryPoint) Ownable(msg.sender) {
         i_entryPoint = IEntryPoint(entryPoint);
     }
 
     receive() external payable {}
 
-    // entryPoint => This contract
-
-    // A signature is valid, if its the MinimalAccount contract owner;
-
-    /////////////////////////////////////////////////////
-    ////////////////////External Functions///////////////
-    /////////////////////////////////////////////////////
-
+    /*//////////////////////////////////////////////////////////////
+                           EXTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
     function execute(
         address dest,
         uint256 value,
         bytes calldata functionData
-    ) external {
+    ) external requireFromEntryPointOrOwner {
         (bool success, bytes memory result) = dest.call{value: value}(
             functionData
         );
         if (!success) {
-            revert MinimalAccount_CallFailed(result);
+            revert MiniamlAccount__CallFailed(result);
         }
     }
 
+    // A signature is valid, if it's the MinimalAccount owner
     function validateUserOp(
         PackedUserOperation calldata userOp,
         bytes32 userOpHash,
         uint256 missingAccountFunds
     ) external requireFromEntryPoint returns (uint256 validationData) {
         validationData = _validateSignature(userOp, userOpHash);
+        // _validateNonce()
         _payPrefund(missingAccountFunds);
     }
 
-    //EIP 191 version of the signed-hash
+    /*//////////////////////////////////////////////////////////////
+                           INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+    // EIP-191 version of the signed hash
     function _validateSignature(
         PackedUserOperation calldata userOp,
         bytes32 userOpHash
@@ -90,16 +87,11 @@ contract MinimalAccount is IAccount, Ownable {
             userOpHash
         );
         address signer = ECDSA.recover(ethSignedMessageHash, userOp.signature);
-
         if (signer != owner()) {
             return SIG_VALIDATION_FAILED;
         }
         return SIG_VALIDATION_SUCCESS;
     }
-
-    ////////////////////////////////////////////////////////
-    /////////////////Internal functions/////////////////////
-    ////////////////////////////////////////////////////////
 
     function _payPrefund(uint256 missingAccountFunds) internal {
         if (missingAccountFunds != 0) {
@@ -107,11 +99,13 @@ contract MinimalAccount is IAccount, Ownable {
                 value: missingAccountFunds,
                 gas: type(uint256).max
             }("");
-
             (success);
         }
     }
 
+    /*//////////////////////////////////////////////////////////////
+                                GETTERS
+    //////////////////////////////////////////////////////////////*/
     function getEntryPoint() external view returns (address) {
         return address(i_entryPoint);
     }
