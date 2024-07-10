@@ -38,6 +38,7 @@ contract ZkMinimalAccountTest is Test {
         minimalAccount = new ZkMinimalAccount();
         minimalAccount.transferOwnership(ANVIL_DEFAULT_ACCOUNT);
         usdc = new ERC20Mock();
+        vm.deal(address(minimalAccount), AMOUNT);
     }
 
     function testZkOwnerCanExecuteCommands() public {
@@ -107,12 +108,12 @@ contract ZkMinimalAccountTest is Test {
         bytes32 unSignedTransactionHash = MemoryTransactionHelper.encodeHash(
             transaction
         );
-        bytes32 digest = unSignedTransactionHash.toEthSignedMessageHash();
+        // bytes32 digest = unSignedTransactionHash.toEthSignedMessageHash();
         uint8 v;
         bytes32 r;
         bytes32 s;
         uint256 ANVIL_DEFAULT_KEY = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
-        (v, r, s) = vm.sign(ANVIL_DEFAULT_KEY, digest);
+        (v, r, s) = vm.sign(ANVIL_DEFAULT_KEY, unSignedTransactionHash);
         Transaction memory signedTransaction = transaction;
         signedTransaction.signature = abi.encode(r, s, v);
         return signedTransaction;
